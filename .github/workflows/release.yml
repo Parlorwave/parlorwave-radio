@@ -1,0 +1,70 @@
+# Publish a GitHub release for the ParlorWave Radio integration.
+#
+# GATED. This workflow cannot run by itself: it has no `push` or `tag`
+# trigger, and the publishing step additionally refuses unless the
+# repository variable PARLORWAVE_PUBLISH_ENABLED is exactly "true".
+#
+# That variable is not set. Turning it on is a deliberate, human act, and
+# the release milestone is where it happens -- not a side effect of a merge.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, e.g. 0.1.0-alpha.1. Must match the manifest."
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Publish release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Refuse unless publishing has been switched on
+        run: |
+          if [ "${{ vars.PARLORWAVE_PUBLISH_ENABLED }}" != "true" ]; then
+            echo "::error::Publishing is disabled. Set the repository variable"
+            echo "::error::PARLORWAVE_PUBLISH_ENABLED=true to allow releases."
+            exit 1
+          fi
+
+      - name: The requested version is the version in the manifest
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib, sys
+          asked = os.environ["ASKED"]
+          have = json.loads(pathlib.Path(
+              "custom_components/parlorwave_radio/manifest.json").read_text())["version"]
+          if asked != have:
+              sys.exit(f"asked to release {asked}, manifest says {have}")
+          print(f"releasing {have}")
+          PY
+        env:
+          ASKED: ${{ inputs.version }}
+
+      - name: Build the installable archive
+        # HACS installs a custom integration by copying
+        # custom_components/<domain>/ out of the repository, and the archive
+        # is for people doing that by hand. Nothing else belongs in it.
+        run: |
+          mkdir -p dist
+          zip -r "dist/parlorwave_radio-${{ inputs.version }}.zip" \
+            custom_components LICENSE NOTICE THIRD_PARTY_NOTICES.md README.md
+
+      - name: Tag and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git tag "v${{ inputs.version }}"
+          git push origin "v${{ inputs.version }}"
+          gh release create "v${{ inputs.version }}" \
+            --title "ParlorWave Radio ${{ inputs.version }}" \
+            --notes-file CHANGELOG.md \
+            --prerelease \
+            "dist/parlorwave_radio-${{ inputs.version }}.zip"

@@ -1,0 +1,65 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to ParlorWave Radio",
+        "description": "If you are running Home Assistant OS, simply start the ParlorWave Radio add-on first — it will be discovered automatically with nothing to type. This form is for a ParlorWave Radio service you run yourself: its API key is the one you configured for it, or the one it generated in the file api_key in its data directory (the key itself is never printed in a log).",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "api_key": "API key"
+        }
+      },
+      "hassio_confirm": {
+        "title": "ParlorWave Radio add-on found",
+        "description": "Connect to the {addon} add-on? Home Assistant reaches it on the internal add-on network; nothing to type."
+      },
+      "reauth_confirm": {
+        "title": "ParlorWave Radio needs its API key again",
+        "description": "The ParlorWave Radio service at {host} no longer accepts the stored API key. If you reinstalled the Home Assistant OS add-on, it is a new installation: delete this entry and confirm the newly discovered ParlorWave Radio. Otherwise, restart the add-on: it sends its key again and this entry reconnects by itself. For a service you run yourself, enter its current key.",
+        "data": {
+          "api_key": "API key"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "The ParlorWave Radio service could not be reached. If the add-on has only just started, wait until it is running and press Submit again.",
+      "invalid_auth": "The ParlorWave Radio service rejected the API key",
+      "unknown": "Unexpected answer from the ParlorWave Radio service"
+    },
+    "abort": {
+      "already_configured": "This ParlorWave Radio service is already configured",
+      "discovery_incomplete": "The add-on's announcement was incomplete; restart the add-on",
+      "cannot_connect": "The ParlorWave Radio add-on could not be reached",
+      "invalid_auth": "The ParlorWave Radio add-on rejected its announced API key",
+      "unknown": "Unexpected answer from the ParlorWave Radio add-on",
+      "instance_mismatch": "The add-on announced a different installation than the one that answered; restart the add-on",
+      "wrong_installation": "That key opens a different ParlorWave Radio installation than this entry's. If the add-on was reinstalled, delete this entry and confirm the newly discovered ParlorWave Radio instead.",
+      "reauth_successful": "ParlorWave Radio is connected again.",
+      "already_in_progress": "This ParlorWave Radio add-on is already waiting to be confirmed"
+    },
+    "flow_title": "{name}"
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "ParlorWave Radio options",
+        "description": "DJ-enabled outputs are the Music Assistant outputs ParlorWave Radio may adopt playback on and DJ; nothing else is ever controlled. Select at least one for breaks to air. If that field is missing, the ParlorWave Radio service or Music Assistant could not be reached; the other options can still be saved. Context sources: which Home Assistant facts the DJ may mention (also chosen on the ParlorWave Radio panel, under Settings). Only the selected entities are read, and only the weather condition and temperatures, the sun times, and upcoming event titles and times are sent to the ParlorWave Radio service.",
+        "data": {
+          "dj_outputs": "DJ-enabled outputs",
+          "weather_entity": "Weather",
+          "calendar_entities": "Calendars"
+        }
+      }
+    },
+    "error": {
+      "outputs_write_failed": "The ParlorWave Radio service did not accept the DJ-enabled outputs"
+    }
+  },
+  "issues": {
+    "addon_version_mismatch": {
+      "title": "ParlorWave Radio add-on and integration versions differ",
+      "description": "The ParlorWave Radio add-on runs {addon_version} and this integration is {integration_version}. They are released together and must be on the same version, or some screens and controls may not work. Update the one that is behind: the integration in HACS, the add-on under Settings → Apps → ParlorWave Radio (Settings → Add-ons before Home Assistant 2026.10). The versions are compared when Home Assistant starts ParlorWave Radio: after an update, restart Home Assistant or reload ParlorWave Radio under Settings → Devices & services for this notice to clear."
+    }
+  }
+}

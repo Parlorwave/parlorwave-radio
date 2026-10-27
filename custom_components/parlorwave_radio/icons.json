@@ -1,0 +1,13 @@
+{
+  "services": {
+    "request": "mdi:playlist-music",
+    "start_radio_from_current": "mdi:radio-tower",
+    "thumbs_up": "mdi:thumb-up",
+    "thumbs_down": "mdi:thumb-down",
+    "voice_rename": "mdi:rename",
+    "voice_delete": "mdi:delete",
+    "voice_note": "mdi:note-edit",
+    "voice_tuning": "mdi:tune",
+    "voice_upload": "mdi:microphone-plus"
+  }
+}

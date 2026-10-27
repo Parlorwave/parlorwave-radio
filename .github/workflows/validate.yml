@@ -1,0 +1,143 @@
+# ParlorWave Radio integration -- what must be true of every commit.
+#
+# Four cheap jobs, all of them seconds. Nothing here builds an image or
+# installs Home Assistant: this repository is a Home Assistant custom
+# integration and a sidebar panel, and its whole suite is pure stdlib
+# because the Home Assistant core it runs against is a stand-in.
+name: Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    # hassfest and the HACS action both track Home Assistant releases, so a
+    # commit that was valid in March can stop being valid in April without
+    # anybody touching it. Once a week is enough to hear about that.
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  privacy:
+    name: Nothing private
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Scan this repository for private content
+        run: python3 tests/test_no_private_content.py -v
+
+  hassfest:
+    name: Home Assistant manifest (hassfest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: home-assistant/actions/hassfest@master
+
+  hacs:
+    name: HACS structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hacs/action@main
+        with:
+          category: integration
+          # `brands` requires the domain to be accepted into
+          # home-assistant/brands, which is a pull request to somebody
+          # else's repository and is not a property of this one. Every
+          # other check -- hacs.json, the integration manifest, the
+          # licence, the repository description, the topics -- is a thing
+          # this repository can satisfy, so none of them is ignored.
+          # The validator slugs are the module names in
+          # hacs/integration:custom_components/hacs/validate/.
+          ignore: brands
+
+  tests:
+    name: Integration and panel contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Integration tests
+        # These EXECUTE the integration's setup, unload, reload, options
+        # flow, websocket commands and readiness model against a stand-in
+        # for the Home Assistant core, and hold the panel's per-screen
+        # contracts. One process per file: the suite monkeypatches module
+        # globals, which must not cross a file boundary.
+        run: |
+          rc=0
+          for t in tests/test_*.py; do
+            echo "--- $t"
+            python3 "$t" || rc=1
+          done
+          exit $rc
+
+      - name: Panel behaviour (executed under node)
+        # Every tests/test_*.mjs that ships: the palette maths, the panel's
+        # DOM and lifecycle, the Broadcast Console and its knobs, the Booth
+        # recorder, and the Station and Settings screens, each run through
+        # its real render and bindings. Node built-ins only, no install step.
+        run: |
+          rc=0
+          for t in tests/test_*.mjs; do
+            echo "--- $t"
+            node "$t" || rc=1
+          done
+          exit $rc
+
+  real-core:
+    name: Real Home Assistant core (install lifecycle)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the pinned test image
+        # Home Assistant by digest plus pytest-homeassistant-custom-component
+        # by version: the same image the maintainer's runner uses, so a red
+        # here is a red there. Raising either pin is a deliberate change to
+        # tests_core/Dockerfile, never a moving tag.
+        run: docker build -t parlorwave-ha-test tests_core
+
+      - name: Discovery, reauthentication, recovery, upgrade, Repairs
+        # The integration runs inside a real core: the config-flow manager,
+        # the entry state machine, reauthentication and the registries are
+        # Home Assistant's own. The add-on is a stand-in at the integration's
+        # transport seam, so no network is needed and none is given.
+        run: >
+          docker run --rm --network none
+          -v "$PWD:/work:ro" -w /work/tests_core
+          -e PYTHONDONTWRITEBYTECODE=1
+          parlorwave-ha-test python3 -m pytest -v
+
+  version:
+    name: One version everywhere
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: The manifest, the changelog and the README agree
+        run: |
+          python3 - <<'PY'
+          import json, re, sys, pathlib
+          version = json.loads(pathlib.Path(
+              "custom_components/parlorwave_radio/manifest.json").read_text())["version"]
+          changelog = pathlib.Path("CHANGELOG.md").read_text()
+          readme = pathlib.Path("README.md").read_text()
+          bad = []
+          if not re.search(rf"^## {re.escape(version)}$", changelog, re.M):
+              bad.append(f"CHANGELOG.md has no '## {version}' heading")
+          if version not in readme:
+              bad.append(f"README.md never names {version}")
+          print("\n".join(bad) or f"version {version} agrees everywhere")
+          sys.exit(1 if bad else 0)
+          PY

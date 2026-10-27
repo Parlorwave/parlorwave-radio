@@ -1,0 +1,163 @@
+request:
+  name: Request music
+  description: >
+    Ask the DJ for music ("90s road trip", "mellow dinner jazz"). The ParlorWave Radio service
+    builds a station for the request and it is queued on the selected output
+    (or the player you name), replacing what is queued there.
+  fields:
+    request:
+      required: true
+      example: "90s road trip"
+      selector:
+        text:
+    player:
+      description: Target player entity (defaults to the ParlorWave Radio output).
+      example: media_player.living_room
+      selector:
+        text:
+    count:
+      description: How many tracks to build (default 30).
+      selector:
+        number:
+          min: 1
+          max: 60
+    mode:
+      description: Optional playback arc (road_trip, dinner, party, ...).
+      selector:
+        text:
+
+start_radio_from_current:
+  name: Start radio from current song
+  description: >
+    Keep the current track playing and turn the FUTURE of the queue into a
+    station seeded from it. Refuses honestly instead of interrupting music.
+  fields:
+    output:
+      description: Start on this output (defaults to the current behavior).
+      selector:
+        text:
+    count:
+      description: How many tracks to seed.
+      selector:
+        number:
+          min: 1
+          max: 30
+
+thumbs_up:
+  name: Thumbs up
+  description: Positive feedback for the playing track (or a named one).
+  fields: &feedback_fields
+    artist:
+      selector:
+        text:
+    title:
+      selector:
+        text:
+    path:
+      description: Library path, when known.
+      selector:
+        text:
+    player:
+      description: Player whose current session gets the feedback mirrored.
+      selector:
+        text:
+
+thumbs_down:
+  name: Thumbs down
+  description: Negative feedback for the playing track (or a named one).
+  fields: *feedback_fields
+
+voice_note:
+  name: Note on a voice
+  description: Your own reminder for a DJ voice, such as "calm, slower reader". Empty clears it.
+  fields:
+    voice_id:
+      required: true
+      selector:
+        text:
+    note:
+      required: false
+      selector:
+        text:
+
+voice_tuning:
+  name: Tune built-in voice
+  description: >-
+    Delivery for one built-in DJ voice: speed (0.7–1.3) and the pause
+    between sentences (0.5–2.5). 1.0 is the engine's own. Custom recordings
+    cannot be tuned.
+  fields:
+    voice_id:
+      required: true
+      example: george
+      selector:
+        text:
+    speed:
+      required: true
+      example: 0.9
+      selector:
+        number:
+          min: 0.7
+          max: 1.3
+          step: 0.05
+    pause:
+      required: true
+      example: 1.4
+      selector:
+        number:
+          min: 0.5
+          max: 2.5
+          step: 0.1
+
+voice_rename:
+  name: Rename voice
+  description: >-
+    Give a voice on the shelf a display name of your own. Works for the
+    built-in DJ voices and the custom slots; an empty name gives a built-in
+    its original name back. Names must be unique.
+  fields:
+    voice_id:
+      required: true
+      example: george
+      selector:
+        text:
+    name:
+      required: true
+      selector:
+        text:
+
+voice_delete:
+  name: Delete custom voice
+  description: Remove a custom slot's sample and reset its name. If it was the selected voice, selection falls back to the first built-in.
+  fields:
+    slot:
+      required: true
+      selector:
+        select:
+          options: [custom_1, custom_2, custom_3]
+
+voice_upload:
+  name: Upload custom voice sample
+  description: >-
+    Store a WAV/MP3/FLAC sample (base64-encoded) for one custom voice slot.
+    Only for a voice you own or have explicit permission to use.
+  fields:
+    slot:
+      required: true
+      selector:
+        select:
+          options: [custom_1, custom_2, custom_3]
+    sample_b64:
+      required: true
+      selector:
+        text:
+          multiline: true
+    authorized:
+      name: I have permission
+      description: >-
+        I have permission to create and use this voice in Parlorwave.
+        Required, and must be true: a recording of someone's voice is only
+        stored with this acknowledgement.
+      required: true
+      selector:
+        boolean:
