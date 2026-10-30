@@ -149,7 +149,9 @@ class AFailedHealthReadKeepsNoVerdict(Case):
     def test_ready_does_not_ride_across_a_failed_read(self):
         self.refresh()
         self.assertEqual(self.state(), readiness.READY)
-        self.coordinator._health_at = 0.0          # the TTL has run out
+        # Back-dated, not zeroed: on a machine up for less than HEALTH_TTL_S
+        # (a fresh CI runner) the monotonic clock itself is below the TTL.
+        self.coordinator._health_at -= HEALTH_TTL_S  # the TTL has run out
         self.transport.health_status = 500
         self.refresh()
         self.assertEqual(self.state(), readiness.CHECKING)
@@ -159,7 +161,7 @@ class AFailedHealthReadKeepsNoVerdict(Case):
 
     def test_a_malformed_answer_is_not_kept_as_the_old_one(self):
         self.refresh()
-        self.coordinator._health_at = 0.0
+        self.coordinator._health_at -= HEALTH_TTL_S
         self.transport.health = {"ok": True}       # no "problems"
         self.refresh()
         self.assertEqual(self.state(), readiness.CHECKING)
